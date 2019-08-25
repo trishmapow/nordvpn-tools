@@ -1,9 +1,11 @@
 # nordvpn-tools
 
 ## nordvpn_best.py
-Outputs a table of servers in the specified city and country that have a load % below MAX_LOAD (default 30).
+Outputs a table of servers in the specified city and country that have a load % below MAX_LOAD (default 30). 
 
 Requirements: `pip3 install requests reverse_geocode tabulate`. Uses the reverse_geocode library to (very roughly) convert coordinates to cities (offline), try larger cities if not working.
+
+To run: `python3 nordvpn_best.py [OPTIONAL MAX_LOAD 1-99]`.
 
 Sample output:
 ```
