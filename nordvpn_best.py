@@ -21,6 +21,6 @@ if __name__ == '__main__':
     country = loc[1] if len(loc) == 2 else "Australia"
     servers = get_servers(country, city)
     x = [[s['name'], s['ip_address'], s['load'], (', '.join([cat['name'] for cat in s['categories']]))] for s in servers if int(s['load']) < MAX_LOAD]
-    print(tabulate(x, headers=["Name", "IP", "Categories", "Load %"]))
+    print(tabulate(x, headers=["Name", "IP", "Load %", "Categories"]))
     print(f"{len(servers)} servers online in {city}, {country} (approximate)")
     print(f"{len(x)} of which have <{MAX_LOAD}% load")
