@@ -28,12 +28,11 @@ if __name__ == '__main__':
             print("Args: MAX_LOAD (integer 1-99)")
             exit(1)
 
-    loc = input("Enter [CITY] [COUNTRY]: ").split()
-    if len(loc) != 2:
-        print("Need two arguments")
+    country = input("Enter country: ")
+    city = input("Enter city: ")
+    if len(country) == 0 or len(city) == 0:
+        print("City and country cannot be empty")
         exit(1)
-    city = loc[0]
-    country = loc[1]
     servers = get_servers(country, city)
 
     x = [[s['name'], s['ip_address'], s['load'], (', '.join([cat['name'] for cat in s['categories']]))] for s in servers if int(s['load']) < MAX_LOAD]
