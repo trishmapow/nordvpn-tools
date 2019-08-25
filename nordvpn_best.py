@@ -20,15 +20,14 @@ if __name__ == '__main__':
         try:
             arg1 = int(sys.argv[1])
             if arg1 < 1 or arg1 > 99:
-                print("Load arg between 1-99")
-                exit(1)
+                raise ValueError
             else:
                 MAX_LOAD = arg1
         except ValueError:
             print("Args: MAX_LOAD (integer 1-99)")
             exit(1)
 
-    country = input("Enter country: ")
+    country = input("Enter country (full name): ")
     city = input("Enter city: ")
     if len(country) == 0 or len(city) == 0:
         print("City and country cannot be empty")
