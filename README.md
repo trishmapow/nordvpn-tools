@@ -9,18 +9,27 @@ To run: `python3 nordvpn_best.py [OPTIONAL MAX_LOAD 1-99]`.
 
 Sample output:
 ```
-~/P/nordvpn-helper $ python3 nordvpn_best.py                            22:43:57
-Enter [CITY] [COUNTRY (optional)]: Sydney Australia
+~/P/nordvpn-tools (master|✔) $ python3 nordvpn_best.py 20
+Enter country (full name): Australia 
+Enter city: Sydney
 Name            IP                 Load %  Categories
 --------------  ---------------  --------  -------------------------
-Australia #195  104.222.131.40         29  Standard VPN servers, P2P
-Australia #197  104.222.131.42         20  Standard VPN servers, P2P
-Australia #202  104.222.131.47         25  Standard VPN servers, P2P
-... etc ...
-Australia #430  103.212.227.181        29  Standard VPN servers, P2P
-Australia #444  103.107.196.171        26  Standard VPN servers, P2P
-Australia #446  103.107.196.187        19  Standard VPN servers, P2P
-154 servers online in Sydney, Australia (approximate)
-55 of which have <30% load
+Australia #215  43.245.163.166         19  Standard VPN servers, P2P
+Australia #216  43.245.163.168         17  Standard VPN servers, P2P
+Australia #219  43.245.163.171         17  Standard VPN servers, P2P
+Australia #226  43.245.163.180         15  Standard VPN servers, P2P
+Australia #264  144.48.36.5            15  Standard VPN servers, P2P
+Australia #265  45.248.76.74           19  Standard VPN servers, P2P
+Australia #295  144.48.36.35           15  Standard VPN servers, P2P
+Australia #389  103.212.227.147        15  Standard VPN servers, P2P
+Australia #390  103.212.227.149        19  Standard VPN servers, P2P
+Australia #392  103.212.227.117        17  Standard VPN servers, P2P
+Australia #421  144.48.36.83           14  Standard VPN servers, P2P
+Australia #423  103.212.227.155        15  Standard VPN servers, P2P
+Australia #425  103.212.227.163        19  Standard VPN servers, P2P
+Australia #429  103.212.227.179        16  Standard VPN servers, P2P
+Australia #430  103.212.227.181        15  Standard VPN servers, P2P
+68 servers online in Sydney, Australia (approximate)
+15 of which have <20% load
 
 ```
