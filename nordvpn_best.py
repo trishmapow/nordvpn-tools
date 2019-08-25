@@ -10,11 +10,10 @@ MAX_LOAD = 30
 def get_servers(country: str, city: str = None):
     servers = requests.request("GET", NORD_API_BASE + "/server")
     filtered = [srv for srv in servers.json() if srv['country'].lower() == country.lower()]
-    for srv in filtered:
-        srv["city"] = reverse_geocode.search([(float(srv["location"]["lat"]), float(srv["location"]["long"]))])[0]["city"]
-        if city is not None and srv["city"] != city:
-            filtered.remove(srv)
-    return filtered
+    if city is None:
+        return filtered
+    else:
+        return list(filter(lambda srv: reverse_geocode.search([(float(srv["location"]["lat"]), float(srv["location"]["long"]))])[0]["city"].lower() == city.lower(), filtered))
 
 if __name__ == '__main__':
     if len(sys.argv[1:]) == 1:
