@@ -19,7 +19,7 @@ optional arguments:
 
 Sample output:
 ```
-~/P/nordvpn-tools (master|✚1) $ python3 nordvpn_best.py --city 'Sydney Australia' --load 20                                                                                    13:07:23
+$ python3 nordvpn_best.py --city 'Sydney Australia' --load 20                                                                                    13:07:23
 Name            IP                 Load %  Categories
 --------------  ---------------  --------  -------------------------
 Australia #197  104.222.131.42         19  Standard VPN servers, P2P
@@ -34,4 +34,10 @@ Australia #423  103.212.227.155        17  Standard VPN servers, P2P
 68 servers online in Sydney, Australia (approximate)
 9 of which have <20% load
 
+```
+
+### Run With Docker
+```sh
+> docker build . -t nordvpn-tools
+> docker run -it nordvpn-tools <Same Params as Above>
 ```
