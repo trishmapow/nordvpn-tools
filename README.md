@@ -19,7 +19,7 @@ optional arguments:
 
 Sample output:
 ```
-$ python3 nordvpn_best.py --city 'Sydney Australia' --load 20                                                                                    13:07:23
+$ python3 nordvpn_best.py --city 'Sydney, Australia' --load 20                                                                                    13:07:23
 Name            IP                 Load %  Categories
 --------------  ---------------  --------  -------------------------
 Australia #197  104.222.131.42         19  Standard VPN servers, P2P
@@ -37,7 +37,16 @@ Australia #423  103.212.227.155        17  Standard VPN servers, P2P
 ```
 
 ### Run With Docker
-```sh
-> docker build . -t nordvpn-tools
-> docker run -it nordvpn-tools <Same Params as Above>
+
+Build locally:
+```shell
+docker build . -t trishmapow/nordvpn-tools
+```
+Or Pull from Dockerhub:
+```shell
+docker pull trishmapow/nordvpn-tools
+```
+Then run with
+```shell
+docker run -it trishmapow/nordvpn-tools <Parameters>
 ```
