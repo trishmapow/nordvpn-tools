@@ -18,22 +18,22 @@ def get_servers(country: str, city: str = None):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Shows low load NordVPN servers in a given city and/or country.")
-    parser.add_argument('--city', help="find servers in '[city] [country]'")
-    parser.add_argument('--country', help="find servers in [country] (full name)")
+    parser.add_argument('--city', help="find servers in '[city], [country]'")
+    parser.add_argument('--country', help="find servers in '[country]' (full name)")
     parser.add_argument('--load', type=int, help="set maximum load (1-99)")
     args = parser.parse_args()
 
     if not (args.city or args.country):
         parser.error("No action requested, choose --city or --country")
     elif args.city:
-        loc = args.city.split(" ")
+        loc = args.city.strip().split(",")
         if len(loc) != 2:
-            parser.error("Expected [city] [country]")
-        city = loc[0]
-        country = loc[1]
+            parser.error("Expected '[city], [country]'")
+        city = loc[0].strip()
+        country = loc[1].strip()
     else:
         city = None
-        country = args.country
+        country = args.country.strip()
 
     if args.load is not None and args.load >= 1 and args.load <= 99:
         MAX_LOAD = args.load
