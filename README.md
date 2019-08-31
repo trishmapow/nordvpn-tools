@@ -1,39 +1,34 @@
 # nordvpn-tools
 
-## nordvpn_best.py
+## nordvpn_best.py v2
 Outputs a table of servers in the specified city and country that have a load % below MAX_LOAD (default 30). 
 
-Requirements: `pip3 install requests reverse_geocode tabulate`. Uses the reverse_geocode library to (very roughly) convert coordinates to cities (offline), try larger cities if not working.
+Requirements: `pip3 install requests tabulate`.
+
+v2 uses new NordVPN endpoint /v1/servers which has much more server info, reverse_geocode no longer needed.
 
 ```
-usage: nordvpn_best.py [-h] [--city CITY] [--country COUNTRY] [--load LOAD]
+usage: nordvpn_best.py [-h] [--load LOAD] [--debug] LOC
 
 Shows low load NordVPN servers in a given city and/or country.
 
+positional arguments:
+  LOC          'city, country_code' or 'country_code' e.g. US, GB
+
 optional arguments:
-  -h, --help         show this help message and exit
-  --city CITY        find servers in '[city] [country]'
-  --country COUNTRY  find servers in [country] (full name)
-  --load LOAD        set maximum load (1-99)
+  -h, --help   show this help message and exit
+  --load LOAD  set maximum load (1-99)
+  --debug
 ```
 
 Sample output:
 ```
-$ python3 nordvpn_best.py --city 'Sydney, Australia' --load 20                                                                                    13:07:23
-Name            IP                 Load %  Categories
---------------  ---------------  --------  -------------------------
-Australia #197  104.222.131.42         19  Standard VPN servers, P2P
-Australia #200  104.222.131.45         17  Standard VPN servers, P2P
-Australia #205  45.121.210.197         16  Standard VPN servers, P2P
-Australia #213  43.245.163.164         17  Standard VPN servers, P2P
-Australia #295  144.48.36.35           19  Standard VPN servers, P2P
-Australia #368  69.161.194.117         17  Standard VPN servers, P2P
-Australia #390  103.212.227.149        19  Standard VPN servers, P2P
-Australia #392  103.212.227.117        14  Standard VPN servers, P2P
-Australia #423  103.212.227.155        17  Standard VPN servers, P2P
-68 servers online in Sydney, Australia (approximate)
-9 of which have <20% load
-
+$ python3 nordvpn_best.py 'Sydney, AU' --load 20
+Name              Load %    Mbps  IP              Groups
+--------------  --------  ------  --------------  -------------------------
+Australia #200        19     150  104.222.131.45  Standard VPN servers, P2P
+Australia #202        13     150  104.222.131.47  Standard VPN servers, P2P
+2 servers online in Sydney AU with <20% load
 ```
 
 ### Run With Docker

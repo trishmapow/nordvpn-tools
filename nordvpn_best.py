@@ -1,46 +1,66 @@
+'''
+NordVPN Server Finder
+github/trishmapow, 2019
+
+v2.0 using new Nord API
+'''
+
 import requests
-import json
-import reverse_geocode
 from tabulate import tabulate
-import sys
 import argparse
 
-NORD_API_BASE = "https://api.nordvpn.com"
-MAX_LOAD = 30
+NORD_API_BASE = "https://api.nordvpn.com/v1"
+MAX_LOAD_DEFAULT = 30
+VERBOSE = False
 
-def get_servers(country: str, city: str = None):
-    servers = requests.request("GET", NORD_API_BASE + "/server")
-    filtered = [srv for srv in servers.json() if srv['country'].lower() == country.lower()]
+def get_servers(country_code: str, city: str = None, max_load: int = MAX_LOAD_DEFAULT):
+    # trial and error, undocumented API
+    fields = ["fields[servers.name]", "fields[servers.locations.country.code]", "fields[servers.locations.country.city.name]"]
+    fields.extend(["fields[station]", "fields[load]", "fields[specifications]", "fields[servers.groups.title]"])
+
+    # perhaps there's a country filter? would reduce network usage
+    load_filter = f"filters[servers.load][$lt]={max_load}"
+    url = NORD_API_BASE + "/servers?limit=16384&" + '&'.join(fields) + f"&{load_filter}"
+    if (VERBOSE):
+        print(url)
+
+    servers = requests.request("GET", url)
+    filtered = [srv for srv in servers.json() if srv['locations'][0]['country']['code'].lower() == country_code.lower()]
     if city is None:
         return filtered
     else:
-        return list(filter(lambda srv: reverse_geocode.search([(float(srv["location"]["lat"]), float(srv["location"]["long"]))])[0]["city"].lower() == city.lower(), filtered))
+        return [srv for srv in filtered if srv['locations'][0]['country']['city']['name'].lower() == city.lower()]
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Shows low load NordVPN servers in a given city and/or country.")
-    parser.add_argument('--city', help="find servers in '[city], [country]'")
-    parser.add_argument('--country', help="find servers in '[country]' (full name)")
+    parser.add_argument('location', metavar='LOC', type=str, help="'city, country_code' or 'country_code' e.g. US, GB")
     parser.add_argument('--load', type=int, help="set maximum load (1-99)")
+    parser.add_argument('--debug', action='store_true')
     args = parser.parse_args()
 
-    if not (args.city or args.country):
-        parser.error("No action requested, choose --city or --country")
-    elif args.city:
-        loc = args.city.strip().split(",")
-        if len(loc) != 2:
-            parser.error("Expected '[city], [country]'")
-        city = loc[0].strip()
-        country = loc[1].strip()
-    else:
+    if args.debug:
+        VERBOSE = True
+
+    loc = list(map(lambda x: x.strip(), args.location.split(',')))
+    if len(loc) == 2:
+        city = loc[0]
+        country = loc[1]
+    elif len(loc) == 1:
         city = None
-        country = args.country.strip()
+        country = loc[0]
+    else:
+        parser.error("'city, country_code' or 'country_code' expected")
+
+    if VERBOSE:
+        print(f"city={city} country={country}")
 
     if args.load is not None and args.load >= 1 and args.load <= 99:
-        MAX_LOAD = args.load
+        servers = get_servers(country, city, args.load)
+    else:
+        servers = get_servers(country, city)
 
-    servers = get_servers(country, city)
+    headers = ["Name", "Load %", "Mbps", "IP", "Groups"]
+    x = [[s['name'], s['load'], [x['values'][0]['value'] for x in s['specifications'] if x['identifier'] == 'network_mbps'][0], s['station'], (', '.join([g['title'] for g in s['groups']][:-1]))] for s in servers]
 
-    x = [[s['name'], s['ip_address'], s['load'], (', '.join([cat['name'] for cat in s['categories']]))] for s in servers if int(s['load']) < MAX_LOAD]
-    print(tabulate(x, headers=["Name", "IP", "Load %", "Categories"]))
-    print(f"{len(servers)} servers online in {city} {country} (approximate)")
-    print(f"{len(x)} of which have <{MAX_LOAD}% load")
+    print(tabulate(x, headers=headers))
+    print(f"{len(servers)} servers online in {city or ''} {country} with <{args.load or MAX_LOAD_DEFAULT}% load")
