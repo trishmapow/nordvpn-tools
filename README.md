@@ -45,3 +45,6 @@ Then run with
 ```shell
 docker run -it trishmapow/nordvpn-tools <Parameters>
 ```
+
+### Old versions
+v1.0: https://github.com/trishmapow/nordvpn-tools/releases/tag/v1.0
