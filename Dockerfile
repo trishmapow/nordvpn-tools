@@ -1,6 +1,6 @@
 FROM python:slim-buster
 
-RUN pip install requests reverse_geocode tabulate
+RUN pip install requests tabulate
 
 WORKDIR /home/
 
