@@ -1,6 +1,7 @@
 FROM python:slim-buster
 
 RUN pip install requests tabulate
+RUN apt-get update && apt-get install -y fping
 
 WORKDIR /home/
 
