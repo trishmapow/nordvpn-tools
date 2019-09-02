@@ -3,7 +3,7 @@
 ## nordvpn_best.py v2.1
 Outputs a table of servers in the specified city and country that have a load % below MAX_LOAD (default 30). 
 
-python3 requirements: see [requirements.txt](requirements.txt)
+python3 requirements: `pip3 install -r requirements.txt`
 
 v2.1 optional system requirement: `fping` to show ping times to servers, e.g. `sudo apt install fping`
 
