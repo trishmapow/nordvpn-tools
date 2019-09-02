@@ -66,7 +66,11 @@ if __name__ == "__main__":
     )
     parser.add_argument("--load", type=int, help="set maximum load (1-99)")
     parser.add_argument("--debug", action="store_true")
-    parser.add_argument("--fping", action="store_true", help="show avg ping (ms) for servers, requires 'fping'")
+    parser.add_argument(
+        "--fping",
+        action="store_true",
+        help="show avg ping (ms) for servers, requires 'fping'",
+    )
     args = parser.parse_args()
 
     if args.debug:
@@ -118,20 +122,27 @@ if __name__ == "__main__":
         for s in servers
     ]
 
-    if args.fping:
-        ips = [s["station"] for s in servers]
-        fping_args = ["fping", "-q", "-i 1", "-c 3"]
-        fping_args.extend(ips)
-        f = subprocess.run(fping_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        avgs = [
-            (l.split("/")[7] if len(l.split("/")) == 9 else "-1")
-            for l in f.stderr.decode().splitlines()
-        ]
-        headers.append("Ping (ms)")
-        x = [x[row] + [avgs[row]] for row in range(0, len(x)-1)]
+    if len(servers) == 0:
+        print(
+            f"No servers found with given location and load. Check location and/or increase load parameter."
+        )
+    else:
+        if args.fping:
+            ips = [s["station"] for s in servers]
+            fping_args = ["fping", "-q", "-i 1", "-c 3"]
+            fping_args.extend(ips)
+            f = subprocess.run(
+                fping_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            )
+            avgs = [
+                (l.split("/")[7] if len(l.split("/")) == 9 else "-1")
+                for l in f.stderr.decode().splitlines()
+            ]
+            headers.append("Ping (ms)")
+            x = [x[row] + [avgs[row]] for row in range(0, len(x) - 1)]
 
-    # output
-    print(tabulate(x, headers=headers))
-    print(
-        f"{len(servers)} servers online in {city or ''} {country} with <{args.load or MAX_LOAD_DEFAULT}% load"
-    )
+        # output
+        print(tabulate(x, headers=headers))
+        print(
+            f"{len(servers)} servers online in {city or ''} {country} with <{args.load or MAX_LOAD_DEFAULT}% load"
+        )
