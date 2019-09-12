@@ -1,5 +1,10 @@
 # nordvpn-tools
 
+## Downloads (standalone)
+Windows: [nordvpn_best.exe](dist/nordvpn_best.exe)
+
+Linux: [nordvpn_best](dist/nordvpn_best)
+
 ## nordvpn_best.py v2.1
 Outputs a table of servers in the specified city and country that have a load % below MAX_LOAD (default 30). 
 
