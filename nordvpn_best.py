@@ -15,8 +15,24 @@ NORD_API_BASE = "https://api.nordvpn.com/v1"
 MAX_LOAD_DEFAULT = 30
 VERBOSE = False
 
+def get_country_id(country_code: str):
+    url = NORD_API_BASE + "/servers/countries"
+    if VERBOSE:
+        print(url)
 
-def get_servers(country_code: str, city: str = None, max_load: int = MAX_LOAD_DEFAULT):
+    servers = requests.request("GET", url)
+    country_id = [
+        srv["id"]
+        for srv in servers.json()
+        if srv["code"].lower() == country_code.lower()
+    ]
+
+    if len(country_id) == 1 and type(country_id[0]) == int:
+        return country_id[0]
+    else:
+        return None
+
+def get_servers(country_id: int, city: str = None, max_load: int = MAX_LOAD_DEFAULT):
     # trial and error, undocumented API
     fields = [
         "fields[servers.name]",
@@ -32,9 +48,8 @@ def get_servers(country_code: str, city: str = None, max_load: int = MAX_LOAD_DE
         ]
     )
 
-    # perhaps there's a country filter? would reduce network usage
-    load_filter = f"filters[servers.load][$lt]={max_load}"
-    url = NORD_API_BASE + "/servers?limit=16384&" + "&".join(fields) + f"&{load_filter}"
+    country_filter = f"filters[country_id]={country_id}"
+    url = NORD_API_BASE + "/servers/recommendations?limit=16384&" + "&".join(fields) + f"&{country_filter}"
     if VERBOSE:
         print(url)
 
@@ -42,7 +57,7 @@ def get_servers(country_code: str, city: str = None, max_load: int = MAX_LOAD_DE
     filtered = [
         srv
         for srv in servers.json()
-        if srv["locations"][0]["country"]["code"].lower() == country_code.lower()
+        if srv["load"] <= max_load
     ]
     if city is None:
         return filtered
@@ -96,53 +111,55 @@ if __name__ == "__main__":
     else:
         parser.error("'city, country_code' or 'country_code' expected")
 
+    country_id = get_country_id(country)
+
     if VERBOSE:
-        print(f"city={city} country={country}")
+        print(f"city={city} country={country} country_id={country_id}")
 
-    # parse load
-    if args.load is not None and args.load >= 1 and args.load <= 99:
-        servers = get_servers(country, city, args.load)
+    if country_id is None:
+        print(
+            f"Country id not found. Check if country code is correct."
+        )
     else:
-        servers = get_servers(country, city)
+        # parse load
+        if args.load is not None and args.load >= 1 and args.load <= 99:
+            servers = get_servers(country_id, city, args.load)
+        else:
+            servers = get_servers(country_id, city)
 
-    # construct table of servers sorted by ascending load
-    headers = ["Name", "Load %", "Mbps", "IP", "Groups"]
-    x = [
-        [
-            s["name"],
-            s["load"],
+        # construct table of servers sorted by ascending load
+        headers = ["Name", "Load %", "IP", "Groups"]
+        x = [
             [
-                x["values"][0]["value"]
-                for x in s["specifications"]
-                if x["identifier"] == "network_mbps"
-            ][0],
-            s["station"],
-            (", ".join([g["title"] for g in s["groups"]][:-1])),
-        ]
-        for s in sorted(servers, key=lambda server: server['load'])
-    ]
-
-    if len(servers) == 0:
-        print(
-            f"No servers found with given location and load. Check location and/or increase load parameter."
-        )
-    else:
-        if args.fping:
-            ips = [s["station"] for s in servers]
-            fping_args = ["fping", "-q", "-i 1", "-c 3"]
-            fping_args.extend(ips)
-            f = subprocess.run(
-                fping_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-            )
-            avgs = [
-                (l.split("/")[7] if len(l.split("/")) == 9 else "-1")
-                for l in f.stderr.decode().splitlines()
+                s["name"],
+                s["load"],
+                s["station"],
+                (", ".join([g["title"] for g in s["groups"]][:-1])),
             ]
-            headers.append("Ping (ms)")
-            x = [x[row] + [avgs[row]] for row in range(0, len(x) - 1)]
+            for s in sorted(servers, key=lambda server: server["load"])
+        ]
 
-        # output
-        print(tabulate(x, headers=headers))
-        print(
-            f"{len(servers)} servers online in {city or ''} {country} with <{args.load or MAX_LOAD_DEFAULT}% load"
-        )
+        if len(servers) == 0:
+            print(
+                f"No servers found with given location and load. Check location and/or increase load parameter."
+            )
+        else:
+            if args.fping:
+                ips = [s["station"] for s in servers]
+                fping_args = ["fping", "-q", "-i 1", "-c 3"]
+                fping_args.extend(ips)
+                f = subprocess.run(
+                    fping_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+                )
+                avgs = [
+                    (l.split("/")[7] if len(l.split("/")) == 9 else "-1")
+                    for l in f.stderr.decode().splitlines()
+                ]
+                headers.append("Ping (ms)")
+                x = [x[row] + [avgs[row]] for row in range(0, len(x) - 1)]
+
+            # output
+            print(tabulate(x, headers=headers))
+            print(
+                f"{len(servers)} servers online in {city or ''} {country} with <{args.load or MAX_LOAD_DEFAULT}% load"
+            )
