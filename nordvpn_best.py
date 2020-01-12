@@ -105,7 +105,7 @@ if __name__ == "__main__":
     else:
         servers = get_servers(country, city)
 
-    # construct table
+    # construct table of servers sorted by ascending load
     headers = ["Name", "Load %", "Mbps", "IP", "Groups"]
     x = [
         [
@@ -119,7 +119,7 @@ if __name__ == "__main__":
             s["station"],
             (", ".join([g["title"] for g in s["groups"]][:-1])),
         ]
-        for s in servers
+        for s in sorted(servers, key=lambda server: server['load'])
     ]
 
     if len(servers) == 0:
