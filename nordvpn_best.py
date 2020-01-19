@@ -1,24 +1,28 @@
 """
 NordVPN Server Finder
-github/trishmapow, 2019
+github/trishmapow, 2020
 
-v2.1 fping support on Linux
+v3.0.0
+- use recommendations API (faster, but no more mbps data)
+- use logging module
+- refactoring
 """
+
+import argparse
+import logging
+from operator import itemgetter
+import platform
+import subprocess
 
 import requests
 from tabulate import tabulate
-import argparse
-import subprocess
-import platform
 
 NORD_API_BASE = "https://api.nordvpn.com/v1"
-MAX_LOAD_DEFAULT = 30
-VERBOSE = False
+DEFAULT_MAX_LOAD = 30
+
 
 def get_country_id(country_code: str):
     url = NORD_API_BASE + "/servers/countries"
-    if VERBOSE:
-        print(url)
 
     servers = requests.request("GET", url)
     country_id = [
@@ -32,49 +36,32 @@ def get_country_id(country_code: str):
     else:
         return None
 
-def get_servers(country_code: str, city: str = None, max_load: int = MAX_LOAD_DEFAULT, legacy: bool = False):
+
+def get_servers(country_code: str, city: str = None, max_load: int = DEFAULT_MAX_LOAD):
     # trial and error, undocumented API
     fields = [
         "fields[servers.name]",
         "fields[servers.locations.country.code]",
         "fields[servers.locations.country.city.name]",
+        "fields[station]",
+        "fields[load]",
+        "fields[servers.groups.title]",
     ]
-    fields.extend(
-        [
-            "fields[station]",
-            "fields[load]",
-            "fields[specifications]",
-            "fields[servers.groups.title]",
-        ]
+
+    country_id = get_country_id(country_code)
+    if country_id is None:
+        raise ValueError("Country id not found. Check that country code is correct.")
+    country_filter = f"filters[country_id]={country_id}"
+    url = (
+        NORD_API_BASE
+        + "/servers/recommendations?limit=16384&"
+        + "&".join(fields)
+        + f"&{country_filter}"
     )
 
-    if legacy:
-        load_filter = f"filters[servers.load][$lt]={max_load}"
-        url = NORD_API_BASE + "/servers?limit=16384&" + "&".join(fields) + f"&{load_filter}"
+    servers = requests.request("GET", url)
+    filtered = [srv for srv in servers.json() if srv["load"] <= max_load]
 
-        servers = requests.request("GET", url)
-        filtered = [
-            srv
-            for srv in servers.json()
-            if srv["locations"][0]["country"]["code"].lower() == country_code.lower()
-        ]
-    else:
-        country_id = get_country_id(country_code)
-        if country_id is None:
-            raise ValueError("Country id not found. Check that country code is correct.")
-        country_filter = f"filters[country_id]={country_id}"
-        url = NORD_API_BASE + "/servers/recommendations?limit=16384&" + "&".join(fields) + f"&{country_filter}"
-
-        servers = requests.request("GET", url)
-        filtered = [
-            srv
-            for srv in servers.json()
-            if srv["load"] <= max_load
-        ]
-    
-    if VERBOSE:
-        print(url)
-    
     if city is None:
         return filtered
     else:
@@ -96,22 +83,19 @@ if __name__ == "__main__":
         help="'city, country_code' or 'country_code' e.g. US, GB",
     )
     parser.add_argument("--load", type=int, help="set maximum load (1-99)")
-    parser.add_argument("--debug", action="store_true")
     parser.add_argument(
         "--fping",
         action="store_true",
         help="show avg ping (ms) for servers, requires 'fping'",
     )
-    parser.add_argument(
-        "--show-mbps",
-        action="store_true",
-        help="show server mbps, uses legacy API, slower & uses more data"
-    )
+    parser.add_argument("--debug", action="store_true")
     args = parser.parse_args()
 
+    # control debug (urllib shows requests by default)
     if args.debug:
-        VERBOSE = True
-    show_mbps = args.show_mbps
+        logging.basicConfig(level=logging.DEBUG)
+    else:
+        logging.disable()
 
     # check system is linux and fping exists
     if args.fping:
@@ -123,7 +107,7 @@ if __name__ == "__main__":
             parser.error("fping only supported on Linux")
 
     # parse loc
-    loc = list(map(lambda x: x.strip(), args.location.split(",")))
+    loc = [x.strip() for x in args.location.split(",")]
     if len(loc) == 2:
         city = loc[0]
         country = loc[1]
@@ -133,43 +117,27 @@ if __name__ == "__main__":
     else:
         parser.error("'city, country_code' or 'country_code' expected")
 
-    if VERBOSE:
-        print(f"city={city} country={country}")
-
     # parse load
-    if args.load is not None and args.load >= 1 and args.load <= 99:
-        servers = get_servers(country, city, args.load, legacy=show_mbps)
+    if args.load is not None:
+        if args.load >= 1 and args.load <= 99:
+            servers = get_servers(country, city, args.load)
+        else:
+            parser.error("load should be between 1 and 99 percent")
     else:
-        servers = get_servers(country, city, legacy=show_mbps)
+        servers = get_servers(country, city)
+    logging.debug(f"city={city} country={country} load={args.load or DEFAULT_MAX_LOAD}")
 
     # construct table of servers sorted by ascending load
-    if show_mbps:
-        headers = ["Name", "Load %", "Mbps", "IP", "Groups"]
-        x = [
-            [
-                s["name"],
-                s["load"],
-                [
-                    x["values"][0]["value"]
-                    for x in s["specifications"]
-                    if x["identifier"] == "network_mbps"
-                ][0],
-                s["station"],
-                (", ".join([g["title"] for g in s["groups"]][:-1])),
-            ]
-            for s in sorted(servers, key=lambda server: server['load'])
+    headers = ["Name", "Load %", "IP", "Groups"]
+    x = [
+        [
+            s["name"],
+            s["load"],
+            s["station"],
+            (", ".join([g["title"] for g in s["groups"]][:-1])),
         ]
-    else:
-        headers = ["Name", "Load %", "IP", "Groups"]
-        x = [
-            [
-                s["name"],
-                s["load"],
-                s["station"],
-                (", ".join([g["title"] for g in s["groups"]][:-1])),
-            ]
-            for s in sorted(servers, key=lambda server: server["load"])
-        ]
+        for s in sorted(servers, key=itemgetter("load"))
+    ]
 
     if len(servers) == 0:
         print(
@@ -193,5 +161,5 @@ if __name__ == "__main__":
         # output
         print(tabulate(x, headers=headers))
         print(
-            f"{len(servers)} servers online in {city or ''} {country} with <{args.load or MAX_LOAD_DEFAULT}% load"
+            f"{len(servers)} servers online in {city or ''} {country} with <{args.load or DEFAULT_MAX_LOAD}% load"
         )
