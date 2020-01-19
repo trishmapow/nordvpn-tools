@@ -5,17 +5,14 @@ Windows: [nordvpn_best.exe](dist/nordvpn_best.exe)
 
 Linux: [nordvpn_best](dist/nordvpn_best)
 
-## nordvpn_best.py v2.1
+## nordvpn_best.py v3
 Outputs a table of servers in the specified city and country that have a load % below MAX_LOAD (default 30). 
 
-python3 requirements: `pip3 install -r requirements.txt`
-
-v2.1 optional system requirement: `fping` to show ping times to servers, e.g. `sudo apt install fping`
-
-v2 uses new NordVPN endpoint /v1/servers which has much more server info, reverse_geocode no longer needed.
+Python requirements: `pip3 install -r requirements.txt`
 
 ```
-usage: nordvpn_best.py [-h] [--load LOAD] [--debug] [--fping] LOC
+$ python3 nordvpn_best.py -h
+usage: nordvpn_best.py [-h] [--load LOAD] [--fping] [--debug] LOC
 
 Shows low load NordVPN servers in a given city and/or country.
 
@@ -25,30 +22,40 @@ positional arguments:
 optional arguments:
   -h, --help   show this help message and exit
   --load LOAD  set maximum load (1-99)
-  --debug
   --fping      show avg ping (ms) for servers, requires 'fping'
+  --debug
 ```
 
 Sample output:
 ```
-$ python3 nordvpn_best.py 'Sydney, AU' --load 10 --fping                                                                                    04:40:03
-Name              Load %    Mbps  IP               Groups                       Ping (ms)
---------------  --------  ------  ---------------  -------------------------  -----------
-Australia #197         7     150  104.222.131.42   Standard VPN servers, P2P         6.07
-Australia #205         7     150  45.121.210.197   Standard VPN servers, P2P         5.9
-Australia #207         5     150  45.121.210.199   Standard VPN servers, P2P         5.84
-Australia #208         8     150  45.121.210.200   Standard VPN servers, P2P         5.72
-Australia #214         8     130  43.245.163.165   Standard VPN servers, P2P         5.99
-Australia #219         7     130  43.245.163.171   Standard VPN servers, P2P         5.29
-Australia #227         8     130  43.245.163.181   Standard VPN servers, P2P         5.84
-Australia #263         7     190  144.48.36.3      Standard VPN servers, P2P         5.73
-Australia #264         9     190  144.48.36.5      Standard VPN servers, P2P         5.84
-Australia #296         8     800  144.48.36.27     Standard VPN servers, P2P         5.82
-Australia #390         7     300  103.212.227.149  Standard VPN servers, P2P         5.8
-Australia #391         9     300  103.212.227.115  Standard VPN servers, P2P         5.88
-Australia #421         6     350  144.48.36.83     Standard VPN servers, P2P         5.82
-14 servers online in Sydney AU with <10% load
+$ python3 nordvpn_best.py 'Brisbane, AU' --load 20 --fping
+Name              Load %  IP              Groups                       Ping (ms)
+--------------  --------  --------------  -------------------------  -----------
+Australia #462        13  103.137.12.211  Standard VPN servers, P2P         31.6
+Australia #413        15  103.137.12.147  Standard VPN servers, P2P         31.2
+Australia #436        16  103.137.12.197  Standard VPN servers, P2P         39
+Australia #464        16  103.137.12.227  Standard VPN servers, P2P         38.2
+Australia #320        17  144.48.39.43    Standard VPN servers, P2P         40.1
+Australia #410        17  103.137.12.133  Standard VPN servers, P2P         41.2
+Australia #411        18  103.137.12.139  Standard VPN servers, P2P         40.3
+Australia #316        18  45.248.77.139   Standard VPN servers, P2P         39.1
+Australia #388        18  45.248.77.133   Standard VPN servers, P2P         36.9
+Australia #355        18  45.248.77.171   Standard VPN servers, P2P         35.5
+Australia #466        19  103.137.12.243  Standard VPN servers, P2P         35.4
+Australia #465        19  103.137.12.235  Standard VPN servers, P2P         36.8
+Australia #306        19  45.248.77.187   Standard VPN servers, P2P         35.1
+Australia #318        20  144.48.39.27    Standard VPN servers, P2P         33
+Australia #387        20  45.248.77.131   Standard VPN servers, P2P         32.8
+Australia #302        20  45.248.77.75    Standard VPN servers, P2P         32.3
+17 servers online in Brisbane AU with <20% load
 ```
+
+### Changelog
+- v3.0 no longer shows mbps info for each server, unfortunately NordVPN has removed this from the specifications field. 
+
+- v2.1 optional system requirement: `fping` to show ping times to servers
+
+- v2.0 uses new NordVPN endpoint /v1/servers which has much more server info, reverse_geocode no longer needed.
 
 ### Run With Docker
 
@@ -66,5 +73,4 @@ docker run -it trishmapow/nordvpn-tools <Parameters>
 ```
 
 ### Older versions
-- v2.0: https://github.com/trishmapow/nordvpn-tools/releases/tag/v2.0
-- v1.0: https://github.com/trishmapow/nordvpn-tools/releases/tag/v1.0
+Check the [releases page](https://github.com/trishmapow/nordvpn-tools/releases).
