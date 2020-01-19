@@ -32,7 +32,7 @@ def get_country_id(country_code: str):
     else:
         return None
 
-def get_servers(country_id: int, city: str = None, max_load: int = MAX_LOAD_DEFAULT):
+def get_servers(country_code: str, city: str = None, max_load: int = MAX_LOAD_DEFAULT, legacy: bool = False):
     # trial and error, undocumented API
     fields = [
         "fields[servers.name]",
@@ -48,17 +48,33 @@ def get_servers(country_id: int, city: str = None, max_load: int = MAX_LOAD_DEFA
         ]
     )
 
-    country_filter = f"filters[country_id]={country_id}"
-    url = NORD_API_BASE + "/servers/recommendations?limit=16384&" + "&".join(fields) + f"&{country_filter}"
+    if legacy:
+        load_filter = f"filters[servers.load][$lt]={max_load}"
+        url = NORD_API_BASE + "/servers?limit=16384&" + "&".join(fields) + f"&{load_filter}"
+
+        servers = requests.request("GET", url)
+        filtered = [
+            srv
+            for srv in servers.json()
+            if srv["locations"][0]["country"]["code"].lower() == country_code.lower()
+        ]
+    else:
+        country_id = get_country_id(country_code)
+        if country_id is None:
+            raise ValueError("Country id not found. Check that country code is correct.")
+        country_filter = f"filters[country_id]={country_id}"
+        url = NORD_API_BASE + "/servers/recommendations?limit=16384&" + "&".join(fields) + f"&{country_filter}"
+
+        servers = requests.request("GET", url)
+        filtered = [
+            srv
+            for srv in servers.json()
+            if srv["load"] <= max_load
+        ]
+    
     if VERBOSE:
         print(url)
-
-    servers = requests.request("GET", url)
-    filtered = [
-        srv
-        for srv in servers.json()
-        if srv["load"] <= max_load
-    ]
+    
     if city is None:
         return filtered
     else:
@@ -86,10 +102,16 @@ if __name__ == "__main__":
         action="store_true",
         help="show avg ping (ms) for servers, requires 'fping'",
     )
+    parser.add_argument(
+        "--show-mbps",
+        action="store_true",
+        help="show server mbps, uses legacy API, slower & uses more data"
+    )
     args = parser.parse_args()
 
     if args.debug:
         VERBOSE = True
+    show_mbps = args.show_mbps
 
     # check system is linux and fping exists
     if args.fping:
@@ -111,23 +133,33 @@ if __name__ == "__main__":
     else:
         parser.error("'city, country_code' or 'country_code' expected")
 
-    country_id = get_country_id(country)
-
     if VERBOSE:
-        print(f"city={city} country={country} country_id={country_id}")
+        print(f"city={city} country={country}")
 
-    if country_id is None:
-        print(
-            f"Country id not found. Check if country code is correct."
-        )
+    # parse load
+    if args.load is not None and args.load >= 1 and args.load <= 99:
+        servers = get_servers(country, city, args.load, legacy=show_mbps)
     else:
-        # parse load
-        if args.load is not None and args.load >= 1 and args.load <= 99:
-            servers = get_servers(country_id, city, args.load)
-        else:
-            servers = get_servers(country_id, city)
+        servers = get_servers(country, city, legacy=show_mbps)
 
-        # construct table of servers sorted by ascending load
+    # construct table of servers sorted by ascending load
+    if show_mbps:
+        headers = ["Name", "Load %", "Mbps", "IP", "Groups"]
+        x = [
+            [
+                s["name"],
+                s["load"],
+                [
+                    x["values"][0]["value"]
+                    for x in s["specifications"]
+                    if x["identifier"] == "network_mbps"
+                ][0],
+                s["station"],
+                (", ".join([g["title"] for g in s["groups"]][:-1])),
+            ]
+            for s in sorted(servers, key=lambda server: server['load'])
+        ]
+    else:
         headers = ["Name", "Load %", "IP", "Groups"]
         x = [
             [
@@ -139,27 +171,27 @@ if __name__ == "__main__":
             for s in sorted(servers, key=lambda server: server["load"])
         ]
 
-        if len(servers) == 0:
-            print(
-                f"No servers found with given location and load. Check location and/or increase load parameter."
+    if len(servers) == 0:
+        print(
+            f"No servers found with given location and load. Check location and/or increase load parameter."
+        )
+    else:
+        if args.fping:
+            ips = [s["station"] for s in servers]
+            fping_args = ["fping", "-q", "-i 1", "-c 3"]
+            fping_args.extend(ips)
+            f = subprocess.run(
+                fping_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE
             )
-        else:
-            if args.fping:
-                ips = [s["station"] for s in servers]
-                fping_args = ["fping", "-q", "-i 1", "-c 3"]
-                fping_args.extend(ips)
-                f = subprocess.run(
-                    fping_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-                )
-                avgs = [
-                    (l.split("/")[7] if len(l.split("/")) == 9 else "-1")
-                    for l in f.stderr.decode().splitlines()
-                ]
-                headers.append("Ping (ms)")
-                x = [x[row] + [avgs[row]] for row in range(0, len(x) - 1)]
+            avgs = [
+                (l.split("/")[7] if len(l.split("/")) == 9 else "-1")
+                for l in f.stderr.decode().splitlines()
+            ]
+            headers.append("Ping (ms)")
+            x = [x[row] + [avgs[row]] for row in range(0, len(x) - 1)]
 
-            # output
-            print(tabulate(x, headers=headers))
-            print(
-                f"{len(servers)} servers online in {city or ''} {country} with <{args.load or MAX_LOAD_DEFAULT}% load"
-            )
+        # output
+        print(tabulate(x, headers=headers))
+        print(
+            f"{len(servers)} servers online in {city or ''} {country} with <{args.load or MAX_LOAD_DEFAULT}% load"
+        )
