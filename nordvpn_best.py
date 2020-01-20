@@ -1,11 +1,6 @@
 """
 NordVPN Server Finder
 github/trishmapow, 2020
-
-v3.0.0
-- use recommendations API (faster, but no more mbps data)
-- use logging module
-- refactoring
 """
 
 import argparse
@@ -38,28 +33,24 @@ def get_country_id(country_code: str):
 
 
 def get_servers(country_code: str, city: str = None, max_load: int = DEFAULT_MAX_LOAD):
-    # trial and error, undocumented API
-    fields = [
-        "fields[servers.name]",
-        "fields[servers.locations.country.code]",
-        "fields[servers.locations.country.city.name]",
-        "fields[station]",
-        "fields[load]",
-        "fields[servers.groups.title]",
-    ]
-
     country_id = get_country_id(country_code)
     if country_id is None:
         raise ValueError("Country id not found. Check that country code is correct.")
-    country_filter = f"filters[country_id]={country_id}"
-    url = (
-        NORD_API_BASE
-        + "/servers/recommendations?limit=16384&"
-        + "&".join(fields)
-        + f"&{country_filter}"
-    )
 
-    servers = requests.request("GET", url)
+    # trial and error, undocumented API
+    url = NORD_API_BASE + "/servers/recommendations"
+    params = {
+        "limit": 16384,
+        "filters[country_id]": country_id,
+        "fields[servers.name]": "",
+        "fields[servers.locations.country.code]": "",
+        "fields[servers.locations.country.city.name]": "",
+        "fields[station]": "",
+        "fields[load]": "",
+        "fields[servers.groups.title]": "",
+    }
+
+    servers = requests.request("GET", url, params=params)
     filtered = [srv for srv in servers.json() if srv["load"] <= max_load]
 
     if city is None:
